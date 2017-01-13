@@ -1,65 +1,55 @@
-#include "syncqueue.h"
-#include <list>
-#include <funtional>
-#include <thread>
-//add
-class threadpool
+#include "threadpool.h"
+threadpool::threadpool(int poolsize, int maxqueuesize):m_poolSize(poolsize)
 {
-public:
-    using Task = std::function<void()>;
-    threadpool(int poolsize, int maxqueuesize):m_poolsize(poolsize)
-    {
-        m_syncqueue(maxqueuesize);                
-        init();
-    }
-    void executeTask(T &Task) 
-    {
-        m_syncqueue.put(Task);
-    }
+    m_syncqueue.setMaxSize(maxqueuesize);                
+    init();
+}
 
-    void stopPool()
-    {
-        m_isrunning = false;
-        destroy();
-    }
-//add
-    ~threadpool()
-    {
-        stopPool();
-    }
+void threadpool::executeTask(Task&& task) 
+{
+    m_syncqueue.put(task);
+}
+
+void threadpool::stopPool()
+{
+    m_isrunning = false;
+    destroy();
+}
+
+threadpool::~threadpool()
+{
+    stopPool();
+}
    
-    
-private:
-    runTask()
+void threadpool::runTask()
+{
+    while(m_isrunning)
     {
-        while(m_isrunning)
-        {
-            m_syncqueue.take(Task);
-            Task();
-        }
+        Task task;
+        m_syncqueue.take(task);
+        task();
     }
-    void init()
-    {
-        m_isrunning = true;
-        for(int i = 0 ;i < m_poolSize; i++)
-        {
-            m_threadqueue.push_back(std::thread(&threadpool::runTask,this);
-        }
-    }
-    destroy()
-    {
-        for(int i = 0 ;i < m_poolSize; i++)
-        {
-            auto thread = m_threadqueue.pop_back();
-            thread.join();
-        }
-     //add
-        m_threadqueue.clear();
+}
 
+void threadpool::init()
+{
+    m_isrunning = true;
+    for(int i = 0 ;i < m_poolSize; i++)
+    {
+        m_threadqueue.push_back(std::make_shared<std::thread>(&threadpool::runTask,this));
     }
-    int m_poolSize;
-    std::list<std::thread> m_threadqueue;
-    syncqueue m_syncqueue;
-    bool m_isrunning;
-       
-};
+}
+
+void threadpool::destroy()
+{
+    for(auto thread : m_threadqueue)
+    {
+        if(thread)
+        {
+            thread->join();
+        }
+    }
+    m_threadqueue.clear();
+
+}
+
