@@ -19,7 +19,9 @@ private:
     bool thereIsAnItemToTake();
     int size();
 private:
+//debug-mutex
     std::mutex m_mutex;
+    std::mutex m_queue_mutex;
     std::list<T> m_queue;
     semaphores m_sem_notfull;
     semaphores m_sem_notempty;
@@ -28,8 +30,7 @@ private:
 
 template<typename T>
 SyncQueue<T>::SyncQueue()
-{
-}
+{}
 template<typename T>
 void SyncQueue<T>::setMaxSize(int maxsize)
 {
@@ -43,7 +44,10 @@ void SyncQueue<T>::put(const T& item)
     //debug
     //hasSpaceToPut();
     m_sem_notfull.sem_wait();
-    m_queue.push_back(item);
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_queue.push_back(item);
+    }
     m_sem_notempty.sem_post();
 }
 
@@ -53,17 +57,12 @@ void SyncQueue<T>::take(T & item)
     //debug
     //thereIsAnItemToTake();
     m_sem_notempty.sem_wait();
-    item = m_queue.front();
-    m_queue.pop_front();
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        item = m_queue.front();
+        m_queue.pop_front();
+    }
     m_sem_notfull.sem_post();
-   // else
-   // {
-   //     std::cout<<"there is no item in the buff, waiting... async thread is "<<std::this_thread::get_id() <<"\n";
-   //     m_sem_notempty.sem_wait();
-   //     item = m_queue.front();
-   //     std::cout<<"SyncQueue take m_queue.pop_front"<<"\n";
-   //     m_queue.pop_front();
-   // }
 }
 
 template<typename T>
