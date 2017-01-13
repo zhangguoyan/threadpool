@@ -9,6 +9,7 @@ public:
     void set(int value);
     void sem_wait();
     void sem_post();
+    int get_sigval();
 
 private:
     std::mutex m_mutex;

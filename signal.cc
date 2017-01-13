@@ -24,3 +24,7 @@ void semaphores::sem_post()
     signal++;
     m_sem.notify_one();
 }
+int semaphores::get_sigval()
+{
+   return signal;
+}
