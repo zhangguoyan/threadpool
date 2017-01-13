@@ -28,8 +28,7 @@ private:
 
 template<typename T>
 SyncQueue<T>::SyncQueue()
-{
-}
+{}
 template<typename T>
 void SyncQueue<T>::setMaxSize(int maxsize)
 {
@@ -56,14 +55,6 @@ void SyncQueue<T>::take(T & item)
     item = m_queue.front();
     m_queue.pop_front();
     m_sem_notfull.sem_post();
-   // else
-   // {
-   //     std::cout<<"there is no item in the buff, waiting... async thread is "<<std::this_thread::get_id() <<"\n";
-   //     m_sem_notempty.sem_wait();
-   //     item = m_queue.front();
-   //     std::cout<<"SyncQueue take m_queue.pop_front"<<"\n";
-   //     m_queue.pop_front();
-   // }
 }
 
 template<typename T>
