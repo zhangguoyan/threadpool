@@ -23,8 +23,8 @@ private:
     std::mutex m_mutex;
     std::mutex m_queue_mutex;
     std::list<T> m_queue;
-    semaphores m_sem_notfull;
-    semaphores m_sem_notempty;
+    semaphores m_sem_full;
+    semaphores m_sem_empty;
     int m_maxsize;
 };
 
@@ -35,7 +35,7 @@ template<typename T>
 void SyncQueue<T>::setMaxSize(int maxsize)
 {
     m_maxsize = maxsize;
-    m_sem_notfull.set(m_maxsize);
+    m_sem_full.set(m_maxsize);
 }
 
 template<typename T>
@@ -43,12 +43,12 @@ void SyncQueue<T>::put(const T& item)
 {
     //debug
     //hasSpaceToPut();
-    m_sem_notfull.sem_wait();
+    m_sem_full.sem_wait();
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_queue.push_back(item);
     }
-    m_sem_notempty.sem_post();
+    m_sem_empty.sem_post();
 }
 
 template<typename T>
@@ -56,13 +56,13 @@ void SyncQueue<T>::take(T & item)
 {
     //debug
     //thereIsAnItemToTake();
-    m_sem_notempty.sem_wait();
+    m_sem_empty.sem_wait();
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         item = m_queue.front();
         m_queue.pop_front();
     }
-    m_sem_notfull.sem_post();
+    m_sem_full.sem_post();
 }
 
 template<typename T>
@@ -78,7 +78,7 @@ bool SyncQueue<T>::hasSpaceToPut()
     //dead lock when want use the m_mutex here ....... notice
     if(size() == m_maxsize)
     {
-        std::cout<<"the buffer is full now, waiting... ... async thread is "<<std::this_thread::get_id() << " value "<< m_sem_notfull.get_sigval()<<"\n";
+        std::cout<<"the buffer is full now, waiting... ... async thread is "<<std::this_thread::get_id() << " value "<< m_sem_full.get_sigval()<<"\n";
         return false;
     }
     return true;
@@ -91,7 +91,7 @@ bool SyncQueue<T>::thereIsAnItemToTake()
     std::unique_lock<std::mutex> lock(m_mutex);
     if(m_queue.empty())
     {
-        std::cout<<"there is no item in the buff, waiting... async thread is "<<std::this_thread::get_id() <<" value "<< m_sem_notempty.get_sigval() <<"\n";
+        std::cout<<"there is no item in the buff, waiting... async thread is "<<std::this_thread::get_id() <<" value "<< m_sem_empty.get_sigval() <<"\n";
         return false;
     }
     return true;
